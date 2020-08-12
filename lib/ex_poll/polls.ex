@@ -8,6 +8,13 @@ defmodule ExPoll.Polls do
 
   alias ExPoll.Polls.{Poll, Option}
 
+  def options_query do
+    from o in Option,
+      left_join: v in assoc(o, :votes),
+      group_by: o.id,
+      select_merge: %{vote_count: count(v.id)}
+  end
+
   @doc """
   Returns the list of polls.
 
@@ -36,9 +43,12 @@ defmodule ExPoll.Polls do
 
   """
   def get_poll!(id) do
-    Poll
-    |> Repo.get!(id)
-    |> Repo.preload(:options)
+    query =
+      from p in Poll,
+        where: p.id == ^id,
+        preload: [options: ^options_query()]
+
+    Repo.one!(query)
   end
 
   @doc """
@@ -107,19 +117,6 @@ defmodule ExPoll.Polls do
   end
 
   @doc """
-  Returns the list of options.
-
-  ## Examples
-
-      iex> list_options()
-      [%Option{}, ...]
-
-  """
-  def list_options do
-    Repo.all(Option)
-  end
-
-  @doc """
   Gets a single option.
 
   Raises `Ecto.NoResultsError` if the Option does not exist.
@@ -133,7 +130,13 @@ defmodule ExPoll.Polls do
       ** (Ecto.NoResultsError)
 
   """
-  def get_option!(id), do: Repo.get!(Option, id)
+  def get_option!(id) do
+    query =
+      from o in options_query(),
+        where: o.id == ^id
+
+    Repo.one!(query)
+  end
 
   @doc """
   Creates a option.
@@ -199,5 +202,23 @@ defmodule ExPoll.Polls do
   """
   def change_option(%Option{} = option, attrs \\ %{}) do
     Option.changeset(option, attrs)
+  end
+
+  @doc """
+  Creates a vote.
+
+  ## Examples
+
+      iex> create_vote(%{field: value})
+      {:ok, %Vote{}}
+
+      iex> create_vote(%{field: bad_value})
+      {:error, %Ecto.Changeset{}}
+
+  """
+  def create_vote(%Option{} = option) do
+    option
+    |> Ecto.build_assoc(:votes)
+    |> Repo.insert()
   end
 end

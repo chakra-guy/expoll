@@ -2,7 +2,7 @@ defmodule ExPollWeb.UserSocket do
   use Phoenix.Socket
 
   ## Channels
-  # channel "room:*", ExPollWeb.RoomChannel
+  channel "poll:*", ExPollWeb.PollChannel
 
   # Socket params are passed from the client and can
   # be used to verify and authenticate a user. After
