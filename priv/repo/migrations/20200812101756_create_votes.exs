@@ -3,7 +3,7 @@ defmodule ExPoll.Repo.Migrations.CreateVotes do
 
   def change do
     create table(:votes) do
-      add :option_id, references(:options, on_delete: :delete_all)
+      add :option_id, references(:options, on_delete: :delete_all), null: false
 
       timestamps()
     end
