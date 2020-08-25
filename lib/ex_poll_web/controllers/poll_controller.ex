@@ -40,4 +40,20 @@ defmodule ExPollWeb.PollController do
       send_resp(conn, :no_content, "")
     end
   end
+
+  def publish(conn, %{"id" => id}) do
+    poll = Polls.get_poll!(id)
+
+    with {:ok, %Poll{} = poll} <- Polls.publish_poll(poll) do
+      render(conn, "show.json", poll: poll)
+    end
+  end
+
+  def unpublish(conn, %{"id" => id}) do
+    poll = Polls.get_poll!(id)
+
+    with {:ok, %Poll{} = poll} <- Polls.unpublish_poll(poll) do
+      render(conn, "show.json", poll: poll)
+    end
+  end
 end

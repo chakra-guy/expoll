@@ -14,6 +14,15 @@ defmodule ExPoll.Polls.Vote do
     vote
     |> cast(attrs, [])
     |> validate_required([])
-    |> assoc_constraint(:option)
+    |> validate_poll_is_published()
+  end
+
+  defp validate_poll_is_published(changeset) do
+    option = get_field(changeset, :option)
+
+    case option.poll.is_published do
+      true -> changeset
+      false -> add_error(changeset, :is_published, "poll can't be voted on when it's unpublished")
+    end
   end
 end
