@@ -81,6 +81,8 @@ defmodule ExPoll.Polls do
     Option.changeset(option, attrs)
   end
 
+  # VOTE
+
   def create_vote(%Option{} = option) do
     option
     |> Ecto.build_assoc(:votes)
