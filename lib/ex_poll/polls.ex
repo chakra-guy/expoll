@@ -27,6 +27,10 @@ defmodule ExPoll.Polls do
     %Poll{}
     |> Poll.changeset(attrs)
     |> Repo.insert()
+    |> case do
+      {:ok, %Poll{} = poll} -> {:ok, Repo.preload(poll, options: options_query())}
+      error -> error
+    end
   end
 
   def update_poll(%Poll{} = poll, attrs) do
