@@ -4,17 +4,20 @@ defmodule ExPollWeb.OptionControllerTest do
   alias ExPoll.Polls
   alias ExPoll.Polls.Option
 
-  @create_attrs %{
-    value: "some value"
-  }
-  @update_attrs %{
-    value: "some updated value"
-  }
-  @invalid_attrs %{value: nil}
+  @create_poll_attrs %{question: "some question"}
+  @create_option_attrs %{value: "some value"}
+  @invalid_option_attrs %{value: nil}
+  @update_option_attrs %{value: "some updated value"}
+
+  def fixture(:poll) do
+    {:ok, poll} = Polls.create_poll(@create_poll_attrs)
+    poll
+  end
 
   def fixture(:option) do
-    {:ok, option} = Polls.create_option(@create_attrs)
-    option
+    {:ok, poll} = Polls.create_poll(@create_poll_attrs)
+    {:ok, poll_option} = Polls.create_option(poll, @create_option_attrs)
+    poll_option
   end
 
   setup %{conn: conn} do
@@ -23,17 +26,22 @@ defmodule ExPollWeb.OptionControllerTest do
 
   describe "index" do
     test "lists all options", %{conn: conn} do
-      conn = get(conn, Routes.option_path(conn, :index))
+      poll = fixture(:poll)
+      conn = get(conn, Routes.poll_option_path(conn, :index, poll.id))
       assert json_response(conn, 200)["data"] == []
     end
   end
 
   describe "create option" do
     test "renders option when data is valid", %{conn: conn} do
-      conn = post(conn, Routes.option_path(conn, :create), option: @create_attrs)
+      poll = fixture(:poll)
+
+      conn =
+        post(conn, Routes.poll_option_path(conn, :create, poll.id), option: @create_option_attrs)
+
       assert %{"id" => id} = json_response(conn, 201)["data"]
 
-      conn = get(conn, Routes.option_path(conn, :show, id))
+      conn = get(conn, Routes.poll_option_path(conn, :show, poll.id, id))
 
       assert %{
                "id" => id,
@@ -42,19 +50,27 @@ defmodule ExPollWeb.OptionControllerTest do
     end
 
     test "renders errors when data is invalid", %{conn: conn} do
-      conn = post(conn, Routes.option_path(conn, :create), option: @invalid_attrs)
+      poll = fixture(:poll)
+
+      conn =
+        post(conn, Routes.poll_option_path(conn, :create, poll.id), option: @invalid_option_attrs)
+
       assert json_response(conn, 422)["errors"] != %{}
     end
   end
 
   describe "update option" do
-    setup [:create_option]
+    test "renders option when data is valid", %{conn: conn} do
+      %Option{id: id, poll_id: poll_id} = fixture(:option)
 
-    test "renders option when data is valid", %{conn: conn, option: %Option{id: id} = option} do
-      conn = put(conn, Routes.option_path(conn, :update, option), option: @update_attrs)
+      conn =
+        put(conn, Routes.poll_option_path(conn, :update, poll_id, id),
+          option: @update_option_attrs
+        )
+
       assert %{"id" => ^id} = json_response(conn, 200)["data"]
 
-      conn = get(conn, Routes.option_path(conn, :show, id))
+      conn = get(conn, Routes.poll_option_path(conn, :show, poll_id, id))
 
       assert %{
                "id" => id,
@@ -62,27 +78,28 @@ defmodule ExPollWeb.OptionControllerTest do
              } = json_response(conn, 200)["data"]
     end
 
-    test "renders errors when data is invalid", %{conn: conn, option: option} do
-      conn = put(conn, Routes.option_path(conn, :update, option), option: @invalid_attrs)
+    test "renders errors when data is invalid", %{conn: conn} do
+      %Option{id: id, poll_id: poll_id} = fixture(:option)
+
+      conn =
+        put(conn, Routes.poll_option_path(conn, :update, poll_id, id),
+          option: @invalid_option_attrs
+        )
+
       assert json_response(conn, 422)["errors"] != %{}
     end
   end
 
   describe "delete option" do
-    setup [:create_option]
+    test "deletes chosen option", %{conn: conn} do
+      %Option{id: id, poll_id: poll_id} = fixture(:option)
+      conn = delete(conn, Routes.poll_option_path(conn, :delete, poll_id, id))
 
-    test "deletes chosen option", %{conn: conn, option: option} do
-      conn = delete(conn, Routes.option_path(conn, :delete, option))
       assert response(conn, 204)
 
       assert_error_sent 404, fn ->
-        get(conn, Routes.option_path(conn, :show, option))
+        get(conn, Routes.poll_option_path(conn, :show, poll_id, id))
       end
     end
-  end
-
-  defp create_option(_) do
-    option = fixture(:option)
-    %{option: option}
   end
 end
