@@ -4,9 +4,9 @@ defmodule ExPoll.Polls do
   """
 
   import Ecto.Query, warn: false
+  alias Ecto.Multi
   alias ExPoll.Repo
-
-  alias ExPoll.Polls.{Poll, Option}
+  alias ExPoll.Polls.{Poll, Option, Vote}
 
   # POLL
 
@@ -43,6 +43,32 @@ defmodule ExPoll.Polls do
     Repo.delete(poll)
   end
 
+  def publish_poll(%Poll{} = poll) do
+    poll
+    |> Poll.publish_changeset()
+    |> Repo.update()
+  end
+
+  def unpublish_poll(%Poll{} = poll) do
+    poll_changeset = Poll.unpublish_changeset(poll)
+    option_ids = Enum.map(poll.options, fn option -> option.id end)
+    poll_votes_query = from(v in Vote, where: v.option_id in ^option_ids)
+
+    result =
+      Multi.new()
+      |> Multi.update(:update_poll, poll_changeset)
+      |> Multi.delete_all(:delete_votes, poll_votes_query)
+      |> Repo.transaction()
+
+    case result do
+      {:ok, %{update_poll: poll}} ->
+        {:ok, get_poll!(poll.id)}
+
+      {:error, _failed_operation, _failed_value, _changes_so_far} ->
+        {:error, "Something went wrong while unpublishing a poll"}
+    end
+  end
+
   def change_poll(%Poll{} = poll, attrs \\ %{}) do
     Poll.changeset(poll, attrs)
   end
@@ -59,14 +85,15 @@ defmodule ExPoll.Polls do
   def get_option!(id) do
     query =
       from o in options_query(),
-        where: o.id == ^id
+        where: o.id == ^id,
+        preload: [:poll]
 
     Repo.one!(query)
   end
 
   def create_option(%Poll{} = poll, attrs \\ %{}) do
     poll
-    |> Ecto.build_assoc(:options)
+    |> Ecto.build_assoc(:options, poll: poll)
     |> Option.changeset(attrs)
     |> Repo.insert()
   end
@@ -78,7 +105,9 @@ defmodule ExPoll.Polls do
   end
 
   def delete_option(%Option{} = option) do
-    Repo.delete(option)
+    option
+    |> change_option()
+    |> Repo.delete()
   end
 
   def change_option(%Option{} = option, attrs \\ %{}) do
@@ -89,7 +118,12 @@ defmodule ExPoll.Polls do
 
   def create_vote(%Option{} = option) do
     option
-    |> Ecto.build_assoc(:votes)
+    |> Ecto.build_assoc(:votes, option: option)
+    |> change_vote()
     |> Repo.insert()
+  end
+
+  def change_vote(%Vote{} = vote, attrs \\ %{}) do
+    Vote.changeset(vote, attrs)
   end
 end

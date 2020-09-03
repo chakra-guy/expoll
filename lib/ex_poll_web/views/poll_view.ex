@@ -13,7 +13,8 @@ defmodule ExPollWeb.PollView do
   def render("poll.json", %{poll: poll}) do
     %{
       id: poll.id,
-      question: poll.question
+      question: poll.question,
+      is_publised: poll.is_published
     }
   end
 
@@ -21,6 +22,7 @@ defmodule ExPollWeb.PollView do
     %{
       id: poll.id,
       question: poll.question,
+      is_publised: poll.is_published,
       options: render_many(poll.options, OptionView, "option.json")
     }
   end

@@ -13,6 +13,8 @@ defmodule ExPollWeb.Router do
     end
 
     post("/polls/:id/vote", VoteController, :create)
+    post("/polls/:id/publish", PollController, :publish)
+    post("/polls/:id/unpublish", PollController, :unpublish)
   end
 
   # Enables LiveDashboard only for development

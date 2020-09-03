@@ -18,5 +18,15 @@ defmodule ExPoll.Polls.Option do
     |> cast(attrs, [:value])
     |> validate_required([:value])
     |> assoc_constraint(:poll)
+    |> validate_poll_is_not_published()
+  end
+
+  defp validate_poll_is_not_published(changeset) do
+    poll = get_field(changeset, :poll)
+
+    case poll.is_published do
+      true -> add_error(changeset, :is_published, "poll can't be modified when it's published")
+      false -> changeset
+    end
   end
 end
