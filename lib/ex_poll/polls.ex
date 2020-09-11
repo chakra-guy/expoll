@@ -10,17 +10,20 @@ defmodule ExPoll.Polls do
 
   # POLL
 
+  defp poll_with_options_query(id) do
+    from p in Poll,
+      where: p.id == ^id,
+      preload: [options: ^options_query()]
+  end
+
   def list_polls do
     Repo.all(Poll)
   end
 
   def get_poll!(id) do
-    query =
-      from p in Poll,
-        where: p.id == ^id,
-        preload: [options: ^options_query()]
-
-    Repo.one!(query)
+    id
+    |> poll_with_options_query()
+    |> Repo.one!()
   end
 
   def create_poll(attrs \\ %{}) do
@@ -49,19 +52,22 @@ defmodule ExPoll.Polls do
 
   # OPTION
 
-  def options_query do
+  defp options_query do
     from o in Option,
       left_join: v in assoc(o, :votes),
       group_by: o.id,
       select_merge: %{vote_count: count(v.id)}
   end
 
-  def get_option!(id) do
-    query =
-      from o in options_query(),
-        where: o.id == ^id
+  defp option_query(id) do
+    from o in options_query(),
+      where: o.id == ^id
+  end
 
-    Repo.one!(query)
+  def get_option!(id) do
+    id
+    |> option_query()
+    |> Repo.one!()
   end
 
   def create_option(%Poll{} = poll, attrs \\ %{}) do
