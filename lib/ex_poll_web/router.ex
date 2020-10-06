@@ -7,6 +7,12 @@ defmodule ExPollWeb.Router do
 
   scope "/api", ExPollWeb do
     pipe_through :api
+
+    resources "/polls", PollController, except: [:new, :edit] do
+      resources "/options", OptionController, except: [:new, :edit]
+    end
+
+    post("/polls/:id/vote", VoteController, :create)
   end
 
   # Enables LiveDashboard only for development
